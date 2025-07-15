@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Venta #{{ venta.id_venta }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Detalle de Venta #{{ venta.id_venta }}</h2>
+    <div class="card mb-3">
+        <div class="card-header">
+            Información General de la Venta
+        </div>
+        <div class="card-body">
+            <p><strong>Fecha de Venta:</strong> {{ venta.fecha_venta.strftime('%d-%m-%Y %H:%M') }}</p>
+            <p><strong>Tipo de Venta:</strong> {{ venta.tipo_venta }}</p>
+            <p><strong>Cliente:</strong>
+                {% if venta.cliente %}
+                    <a href="{{ url_for('ver_cliente', id_cliente=venta.cliente.id_cliente) }}">{{ venta.cliente.nombre_completo }}</a>
+                {% else %}
+                    N/A (Cliente no registrado)
+                {% endif %}
+            </p>
+            <p><strong>Orden de Trabajo Asociada:</strong>
+                {% if venta.id_ot_asociada %}
+                    <a href="{{ url_for('ver_orden_trabajo', id_ot=venta.id_ot_asociada) }}">OT #{{ venta.id_ot_asociada }}</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </p>
+            <p><strong>Total Venta:</strong> CLP ${{(venta.total_venta) | clp}}</p>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            Repuestos Vendidos
+        </div>
+        <div class="card-body">
+            {% if venta.detalles_venta %}
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Repuesto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detalle in venta.detalles_venta %}
+                    <tr>
+                        <td>
+                            {% if detalle.repuesto %}
+                                {{ detalle.repuesto.nombre_repuesto }}
+                            {% else %}
+                                Repuesto Eliminado (ID: {{ detalle.id_repuesto }})
+                            {% endif %}
+                        </td>
+                        <td>{{ detalle.cantidad }}</td>
+                        <td>CLP ${{(detalle.precio_venta_unitario_al_momento) | clp}}</td>
+                        <td>CLP ${{(detalle.cantidad * detalle.precio_venta_unitario_al_momento) | clp}}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-center">No hay repuestos asociados a esta venta.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            Pagos Asociados
+        </div>
+        <div class="card-body">
+            {% if venta.pagos %}
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID Pago</th>
+                        <th>Fecha Pago</th>
+                        <th>Monto</th>
+                        <th>Método</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pago in venta.pagos %}
+                    <tr>
+                        <td>{{ pago.id_pago }}</td>
+                        <td>{{ pago.fecha_pago.strftime('%d-%m-%Y %H:%M') }}</td>
+                        <td>CLP ${{(pago.monto) | clp}}</td>
+                        <td>{{ pago.metodo_pago }}</td>
+                        <td>{{ pago.descripcion }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2" class="text-end">Total Pagado:</th>
+                        <th>CLP ${{ "%.2f"|format(venta.pagos|sum(attribute='monto')) }}</th>
+                        <th colspan="2"></th>
+                    </tr>
+                    <tr>
+                        <th colspan="2" class="text-end">Saldo Pendiente:</th>
+                        <th>CLP ${{ "%.0f"|format(venta.total_venta - (venta.pagos|sum(attribute='monto') if venta.pagos else 0)) }}</th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+            {% else %}
+            <p class="text-center">No hay pagos asociados a esta venta aún.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="text-end mt-4">
+        <a href="{{ url_for('listar_ventas') }}" class="btn btn-secondary">Volver a la Lista de Ventas</a>
+        {# Botón para registrar pago, pre-seleccionando la venta actual #}
+        <a href="{{ url_for('crear_pago', id_venta_preseleccionada=venta.id_venta) }}" class="btn btn-success">Registrar Pago para esta Venta</a>
+    </div>
+</div>
+{% endblock %}

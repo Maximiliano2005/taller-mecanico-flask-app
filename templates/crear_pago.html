@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Pago{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Registrar Nuevo Pago</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('crear_pago') }}">
+       <div class="mb-3">
+        <label for="id_venta" class="form-label">Venta Asociada</label>
+            <select class="form-select" id="id_venta" name="id_venta" required>
+                <option value="" disabled {% if not id_venta_preseleccionada %}selected{% endif %}>Selecciona una venta</option>
+                {% for venta in ventas %}
+                    <option value="{{ venta.id_venta }}" {% if id_venta_preseleccionada == venta.id_venta %}selected{% endif %}>
+                        Venta #{{ venta.id_venta }} - Total: CLP ${{ venta.total_venta | clp }} {# ¡CAMBIADO AQUÍ! #}
+                        {% if venta.cliente %} (Cliente: {{ venta.cliente.nombre_completo }}){% endif %}
+                        {% if venta.id_ot_asociada %} (OT #{{ venta.id_ot_asociada }}){% endif %}
+                        {# ¡Y CAMBIADO AQUÍ para el Saldo Pendiente! #}
+                        - Saldo Pendiente: CLP ${{ (venta.total_venta - (venta.pagos|sum(attribute='monto') if venta.pagos else 0)) | clp }}
+                    </option>
+                {% endfor %}
+            </select>
+</div>
+        <div class="mb-3">
+            <label for="monto" class="form-label">Monto del Pago</label>
+            <input type="number" class="form-control" id="monto" name="monto" step="0.01" min="0.01" required>
+        </div>
+        <div class="mb-3">
+            <label for="metodo_pago" class="form-label">Método de Pago</label>
+            <select class="form-select" id="metodo_pago" name="metodo_pago" required>
+                <option value="" disabled selected>Selecciona un método</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                <option value="Transferencia">Transferencia Bancaria</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Otro">Otro</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción (Opcional)</label>
+            <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Registrar Pago</button>
+        <a href="{{ url_for('listar_pagos') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

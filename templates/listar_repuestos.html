@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventario de Repuestos{% endblock %}
+
+{% block content %}
+    <h2>Inventario de Repuestos</h2>
+    
+    <a href="{{ url_for('agregar_repuesto') }}" class="btn btn-primary mb-3">Agregar Nuevo Repuesto</a>
+
+    <table id="tablaRepuestos" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for repuesto in repuestos %}
+            <tr>
+                <td>{{ repuesto.id_repuesto }}</td>
+                <td>{{ repuesto.nombre_repuesto }}</td>
+                <td>{{ repuesto.descripcion }}</td>
+                <td>CLP ${{ repuesto.precio_venta | clp }}</td>
+                <td>{{ repuesto.stock_actual }}</td>
+                <td>
+                    <a href="{{ url_for('editar_repuesto', id_repuesto=repuesto.id_repuesto) }}" class="btn btn-sm btn-info">Editar</a>
+                    <form action="{{ url_for('eliminar_repuesto', id=repuesto.id_repuesto) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este repuesto?');">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#tablaRepuestos').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json" // Carga el idioma español
+            },
+            "columnDefs": [
+                { "orderable": false, "targets": [5] } // Deshabilita el ordenamiento para la columna de "Acciones" (índice 5)
+            ]
+        });
+    });
+</script>
+{% endblock %}

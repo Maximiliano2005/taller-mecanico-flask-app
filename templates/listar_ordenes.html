@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Listado de Órdenes de Trabajo{% endblock %}
+
+{% block content %}
+    <h2 style="padding: 10px;">Listado de Órdenes de Trabajo</h2>
+
+    <a href="{{ url_for('crear_orden_trabajo') }}" class="btn btn-primary mb-3">Crear Nueva Orden de Trabajo</a>
+
+    <table id="tablaOrdenes" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr>
+                <th>ID OT</th>
+                <th>Cliente</th>
+                <th>Patente Vehículo</th>
+                <th>Fecha Creación</th>
+                <th>Fecha Entrega Est.</th>
+                <th>Estado</th>
+                <th>Total ($)</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for orden in ordenes %}
+            <tr>
+                <td>{{ orden.id_ot }}</td>
+                <td>{{ orden.vehiculo.cliente.nombre_completo }}</td>
+                <td>{{ orden.vehiculo.patente }}</td>
+                <td>{{ orden.fecha_ingreso.strftime('%d/%m/%Y') }}</td>
+                <td>{{ orden.fecha_entrega_estimada.strftime('%d/%m/%Y') if orden.fecha_entrega_estimada else 'N/A' }}</td>
+                <td>{{ orden.estado }}</td>
+                <td>CLP ${{ orden.valor_total_servicio | clp }}</td>
+                <td>
+                    <a href="{{ url_for('ver_orden_trabajo', id_ot=orden.id_ot) }}" class="btn btn-sm btn-secondary">Ver</a> {# ¡CORREGIDO AQUÍ! #}
+                    <form action="{{ url_for('eliminar_orden_trabajo', id_ot=orden.id_ot) }}" method="POST" style="display:inline;"> {# ¡CORREGIDO AQUÍ! #}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar esta orden de trabajo?');">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#tablaOrdenes').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json" // Idioma español
+            },
+            "columnDefs": [
+                { "orderable": false, "targets": [7] } // Deshabilita el ordenamiento para la columna de "Acciones" (índice 7)
+            ],
+            "order": [[0, 'desc']] // Ordena por la primera columna (ID OT) en orden descendente por defecto
+        });
+    });
+</script>
+{% endblock %}

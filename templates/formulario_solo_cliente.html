@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if cliente %}Editar Cliente{% else %}Agregar Nuevo Cliente{% endif %}{% endblock %}
+
+{% block content %}
+    <h2>{% if cliente %}Editar Cliente{% else %}Agregar Nuevo Cliente{% endif %}</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="nombre_completo">Nombre Completo:</label>
+            <input type="text" id="nombre_completo" name="nombre_completo" value="{{ cliente.nombre_completo if cliente else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="celular">Número de Celular:</label>
+            <input type="text" id="celular" name="celular" value="{{ cliente.celular if cliente else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email (Opcional):</label>
+            <input type="email" id="email" name="email" value="{{ cliente.email if cliente else '' }}">
+        </div>
+
+        <button type="submit" class="btn">{% if cliente %}Actualizar Cliente{% else %}Agregar Cliente{% endif %}</button>
+        <a href="{{ url_for('listar_clientes') }}" class="btn btn-danger">Cancelar</a>
+    </form>
+{% endblock %}

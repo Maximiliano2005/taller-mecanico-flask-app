@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Nueva Orden de Trabajo{% endblock %}
+
+{% block content %}
+    <h2>Crear Nueva Orden de Trabajo</h2>
+    {# Mensajes flash (asumiendo que ya están en base.html y los eliminaste de aquí) #}
+
+    <form method="POST">
+        <h3>Seleccionar Cliente y Vehículo</h3>
+        {# Selector de Cliente #}
+        <div class="form-group">
+            <label for="cliente_id">Cliente:</label>
+            <select class="form-control" id="cliente_id" name="id_cliente" required>
+                <option value="">Seleccione un Cliente</option>
+                {% for cliente in clientes %} {# Asume que 'clientes' se pasa desde app.py #}
+                <option value="{{ cliente.id_cliente }}">{{ cliente.nombre_completo }} ({{ cliente.rut }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {# Selector de Vehículo (inicialmente deshabilitado) #}
+        <div class="form-group">
+            <label for="vehiculo_id">Vehículo:</label>
+            <select class="form-control" id="vehiculo_id" name="vehiculo_id" required disabled> 
+                <option value="">Seleccione un Vehículo</option>
+            </select>
+        </div>
+
+        {# Campos para los Detalles del Vehículo (se autocompletarán) #}
+        <h4>Detalles del Vehículo Seleccionado:</h4>
+        <div class="form-group">
+            <label for="patente">Patente:</label>
+            <input type="text" class="form-control" id="patente" name="patente_display" readonly>
+        </div>
+        <div class="form-group">
+            <label for="marca">Marca:</label>
+            <input type="text" class="form-control" id="marca" name="marca_display" readonly>
+        </div>
+        <div class="form-group">
+            <label for="modelo">Modelo:</label>
+            <input type="text" class="form-control" id="modelo" name="modelo_display" readonly>
+        </div>
+        <div class="form-group">
+            <label for="anio">Año:</label>
+            <input type="text" class="form-control" id="anio" name="anio_display" readonly>
+        </div>
+
+        <h3>Detalles del Servicio</h3>
+        <div class="form-group">
+            <label for="mecanico_asignado">Mecánico Asignado (Opcional):</label>
+            {# --- CAMBIO AQUÍ: De input a select --- #}
+            <select class="form-control" id="mecanico_asignado" name="mecanico_asignado">
+                <option value="">-- No Asignado --</option>
+                {% for mecanico in mecanicos %} {# Asume que 'mecanicos' se pasa desde app.py #}
+                <option value="{{ mecanico.id }}">{{ mecanico.username }}</option>
+                {% endfor %}
+            </select>
+            {# --- FIN CAMBIO --- #}
+        </div>
+        <div class="form-group">
+            <label for="descripcion_trabajo">Descripción del Trabajo:</label>
+            <textarea id="descripcion_trabajo" name="descripcion_trabajo" rows="5" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="valor_mano_obra">Valor Mano de Obra (sin IVA):</label>
+            <input type="number" id="valor_mano_obra" name="valor_mano_obra" step="1" value="0" required>
+        </div>
+
+        <h3>Repuestos a Utilizar</h3>
+        <button type="button" class="btn btn-secondary" onclick="agregarCampoRepuesto()">Agregar Repuesto</button> {# Añadí clase btn-secondary #}
+        <div id="repuestos_container">
+            {# Los campos de repuesto se añadirán aquí con JavaScript #}
+        </div>
+        <p style="margin-top: 15px;">**Importante:** Los repuestos seleccionados se descontarán del inventario y se sumarán al valor total del servicio.</p>
+
+        <button type="submit" class="btn btn-primary" style="background-color: #007bff;">Crear Orden de Trabajo</button>
+        <a href="{{ url_for('listar_ordenes') }}" class="btn btn-danger">Cancelar</a>
+    </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Variables y funciones para Repuestos (ya las tenías)
+    let repuestoCount = 0;
+    // Asegúrate que esta variable se llama 'repuestos_json' como la pasas desde app.py
+    const repuestos = {{ repuestos_json | tojson }}; 
+
+    function agregarCampoRepuesto() {
+        repuestoCount++;
+        const container = document.getElementById('repuestos_container');
+        const div = document.createElement('div');
+        div.classList.add('form-group', 'repuesto-item'); // Añadí 'repuesto-item' para consistencia
+        div.innerHTML = `
+            <hr>
+            <label for="repuesto_${repuestoCount}">Repuesto #${repuestoCount}:</label>
+            <select id="repuesto_${repuestoCount}" name="repuesto_id_${repuestoCount}" onchange="actualizarPrecioStock(this, ${repuestoCount})" required class="form-control"> {# Añadí class="form-control" #}
+                <option value="">-- Selecciona un Repuesto --</option>
+                ${repuestos.map(r => `<option value="${r.id}">${r.nombre_repuesto} (Stock: ${r.stock_actual} - Precio: $${r.precio_venta})</option>`).join('')}
+            </select>
+            <label for="cantidad_${repuestoCount}" style="margin-top: 10px;">Cantidad:</label>
+            <input type="number" id="cantidad_${repuestoCount}" name="cantidad_${repuestoCount}" min="1" value="1" onchange="validarCantidad(this, ${repuestoCount})" required class="form-control"> {# Añadí class="form-control" #}
+            <p id="info_repuesto_${repuestoCount}" style="font-size: 0.9em; color: #555;"></p>
+            <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">Quitar Repuesto</button> {# Añadí btn-sm #}
+        `;
+        container.appendChild(div);
+    }
+
+    function actualizarPrecioStock(selectElement, count) {
+        const selectedRepuestoId = parseInt(selectElement.value);
+        const infoParagraph = document.getElementById(`info_repuesto_${count}`);
+        const cantidadInput = document.getElementById(`cantidad_${count}`);
+        // Asegúrate de que el ID del repuesto en el JSON sea 'id' o 'id_repuesto'
+        const repuesto = repuestos.find(r => r.id === selectedRepuestoId || r.id_repuesto === selectedRepuestoId); 
+
+        if (repuesto) {
+            infoParagraph.textContent = `Precio Unitario: $${repuesto.precio_venta.toFixed(2)} | Stock Disponible: ${repuesto.stock_actual}`;
+            cantidadInput.max = repuesto.stock_actual; 
+            cantidadInput.value = Math.min(cantidadInput.value, repuesto.stock_actual); // Ajusta la cantidad si excede el stock
+        } else {
+            infoParagraph.textContent = '';
+            cantidadInput.max = ""; 
+        }
+    }
+
+    function validarCantidad(inputElement, count) {
+        const selectedRepuestoId = parseInt(document.getElementById(`repuesto_${count}`).value);
+        const repuesto = repuestos.find(r => r.id === selectedRepuestoId || r.id_repuesto === selectedRepuestoId);
+
+        if (repuesto) {
+            const cantidadSolicitada = parseInt(inputElement.value);
+            if (cantidadSolicitada > repuesto.stock_actual) {
+                alert(`La cantidad solicitada (${cantidadSolicitada}) excede el stock disponible (${repuesto.stock_actual}).`);
+                inputElement.value = repuesto.stock_actual; 
+            }
+        }
+    }
+
+    // --- Lógica AJAX para Clientes y Vehículos (NUEVA/REESTRUCTURADA) ---
+    $(document).ready(function() {
+        var clienteSelect = $('#cliente_id');
+        var vehiculoSelect = $('#vehiculo_id');
+        var patenteInput = $('#patente');
+        var marcaInput = $('#marca');
+        var modeloInput = $('#modelo');
+        var anioInput = $('#anio');
+
+        clienteSelect.change(function() {
+            var clienteId = $(this).val(); 
+            
+            vehiculoSelect.empty().append('<option value="">Cargando Vehículos...</option>').prop('disabled', true);
+            patenteInput.val('');
+            marcaInput.val('');
+            modeloInput.val('');
+            anioInput.val('');
+
+            if (clienteId) {
+                $.getJSON('/api/cliente/' + clienteId + '/vehiculos', function(data) {
+                    vehiculoSelect.empty().append('<option value="">Seleccione un Vehículo</option>'); 
+                    if (data.length > 0) {
+                        $.each(data, function(index, vehiculo) {
+                            vehiculoSelect.append('<option value="' + vehiculo.id_vehiculo + '" ' +
+                                                  'data-patente="' + vehiculo.patente + '" ' +
+                                                  'data-marca="' + vehiculo.marca + '" ' +
+                                                  'data-modelo="' + vehiculo.modelo + '" ' +
+                                                  'data-anio="' + vehiculo.anio + '">' +
+                                                  vehiculo.patente + ' - ' + vehiculo.marca + ' ' + vehiculo.modelo +
+                                                  '</option>');
+                        });
+                        vehiculoSelect.prop('disabled', false); 
+                    } else {
+                        vehiculoSelect.append('<option value="">No hay vehículos para este cliente</option>');
+                        vehiculoSelect.prop('disabled', true);
+                    }
+                }).fail(function() {
+                    vehiculoSelect.empty().append('<option value="">Error al cargar vehículos</option>');
+                    vehiculoSelect.prop('disabled', true);
+                    console.error("Error al cargar vehículos para el cliente " + clienteId);
+                    alert("No se pudieron cargar los vehículos. Intente de nuevo.");
+                });
+            } else {
+                vehiculoSelect.empty().append('<option value="">Seleccione un Vehículo</option>').prop('disabled', true);
+            }
+        });
+
+        vehiculoSelect.change(function() {
+            var selectedOption = $(this).find('option:selected');
+            patenteInput.val(selectedOption.data('patente') || '');
+            marcaInput.val(selectedOption.data('marca') || '');
+            modeloInput.val(selectedOption.data('modelo') || '');
+            anioInput.val(selectedOption.data('anio') || '');
+        });
+    });
+</script>
+{% endblock %}

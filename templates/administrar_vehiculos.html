@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Vehículos de {{ cliente.nombre_completo }}{% endblock %}
+
+{% block content %}
+    <h2>Vehículos de {{ cliente.nombre_completo }} (ID: {{ cliente.id_cliente }})</h2>
+    <p>Celular: {{ cliente.celular }} | Email: {{ cliente.email if cliente.email else 'N/A' }}</p>
+
+    <a href="{{ url_for('agregar_vehiculo', id_cliente=cliente.id_cliente) }}" class="btn">Agregar Nuevo Vehículo a este Cliente</a>
+    <a href="{{ url_for('listar_clientes') }}" class="btn btn-danger">Volver a Clientes</a>
+
+    {% if cliente.vehiculos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID Vehículo</th>
+                    <th>Patente</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Año</th>
+                    <th>Kilometraje</th>
+                    <th>Notas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehiculo in cliente.vehiculos %}
+                <tr>
+                    <td>{{ vehiculo.id_vehiculo }}</td>
+                    <td>{{ vehiculo.patente }}</td>
+                    <td>{{ vehiculo.marca }}</td>
+                    <td>{{ vehiculo.modelo }}</td>
+                    <td>{{ vehiculo.anio if vehiculo.anio else 'N/A' }}</td>
+                    <td>{{ vehiculo.kilometraje if vehiculo.kilometraje else 'N/A' }}</td>
+                    <td>{{ vehiculo.notas_vehiculo if vehiculo.notas_vehiculo else 'N/A' }}</td>
+                    <td>
+                        <a href="{{ url_for('editar_vehiculo', id_vehiculo=vehiculo.id_vehiculo) }}" class="btn">Editar</a>
+                        <form action="{{ url_for('eliminar_vehiculo', id_vehiculo=vehiculo.id_vehiculo) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este vehículo?');">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Este cliente no tiene vehículos registrados aún.</p>
+    {% endif %}
+{% endblock %}

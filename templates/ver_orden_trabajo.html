@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle Orden de Trabajo #{{ ot.id_ot }}{% endblock %}
+
+{% block content %}
+    <h2>Detalle Orden de Trabajo #{{ ot.id_ot }}</h2>
+
+    <p><strong>Vehículo:</strong> {{ ot.vehiculo.patente }} ({{ ot.vehiculo.marca }} {{ ot.vehiculo.modelo }})</p>
+    <p><strong>Cliente:</strong> {{ ot.vehiculo.cliente.nombre_completo }} (Cel: {{ ot.vehiculo.cliente.celular }})</p>
+    <p><strong>Fecha Ingreso:</strong> {{ ot.fecha_ingreso.strftime('%d-%m-%Y %H:%M') }}</p>
+    <p><strong>Mecánico Asignado:</strong> {{ ot.mecanico_asignado if ot.mecanico_asignado else 'No asignado' }}</p>
+    <p><strong>Descripción del Trabajo:</strong></p>
+    <p>{{ ot.descripcion_trabajo }}</p>
+    <p><strong>Valor Mano de Obra:</strong> CLP${{ ot.valor_mano_obra | clp }}</p>
+    <p><strong>Valor Total del Servicio:</strong> CLP${{ ot.valor_total_servicio | clp }}</p>
+    <p><strong>Fecha Entrega Real:</strong> {{ ot.fecha_entrega_real.strftime('%d-%m-%Y %H:%M') if ot.fecha_entrega_real else 'Pendiente de entrega' }}</p>
+
+    <h3>Repuestos Utilizados:</h3>
+    {% if ot.detalles_ot %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Repuesto</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario (al momento de OT)</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in ot.detalles_ot %}
+                <tr>
+                    <td>{{ detalle.repuesto.nombre_repuesto }} ({{ detalle.repuesto.marca_repuesto }})</td>
+                    <td>{{ detalle.cantidad}}</td>
+                    <td>${{ detalle.precio_unitario_al_momento | int }}</td>
+                    <td>${{ (detalle.cantidad * detalle.precio_unitario_al_momento) | int }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No se utilizaron repuestos en esta Orden de Trabajo.</p>
+    {% endif %}
+
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('listar_ordenes') }}" class="btn">Volver a Órdenes de Trabajo</a> {# Nueva ruta #}
+        {% if not ot.fecha_entrega_real %}
+        <form action="{{ url_for('finalizar_orden_trabajo', id_ot=ot.id_ot) }}" method="POST" style="display:inline; margin-left: 10px;"> {# Nueva ruta #}                <button type="submit" class="btn" style="background-color: #ffc107; color: #333;" onclick="return confirm('¿Estás seguro de que quieres marcar esta OT como finalizada y registrada con fecha actual?');">Marcar como Finalizada</button>
+            </form>
+        {% endif %}
+        <form action="{{ url_for('eliminar_orden_trabajo', id_ot=ot.id_ot) }}" method="POST" style="display:inline; margin-left: 10px;"> {# Nueva ruta #}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar esta Orden de Trabajo? Esto eliminará todos sus detalles.');">Eliminar OT</button>
+        </form>
+    </div>
+{% endblock %}

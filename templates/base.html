@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema Taller Mecánico{% endblock %}</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/autopartlogo.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/autopartlogo.png') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="/img/logo.png" type="image/x-icon">
+    
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Auto Part | Accesorios</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="{{ url_for('index') }}">Inicio</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('listar_ordenes') }}">Órdenes de Trabajo</a>
+                </li>
+                <li>
+                    <a class="nav-link" href="{{ url_for('crear_venta_directa') }}">Venta Directa</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('listar_repuestos') }}">Inventario</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('listar_clientes') }}">Clientes</a>
+                </li>
+                <li>
+                    <a class="nav-link" href="{{ url_for('historial_vehiculo') }}">Historial por Patente</a>
+                </li>
+                
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownReports" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Reportes
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownReports">
+                        <li><a class="dropdown-item" href="{{ url_for('listar_ventas') }}">Ventas</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('listar_pagos') }}">Pagos</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reporte_stock_minimo') }}">Stock Mínimo</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reporte_ventas_periodo') }}">Ventas por Período</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reporte_ingresos_por_periodo') }}">Ingresos por Período</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reporte_repuestos_mas_vendidos') }}">Repuestos Más Vendidos</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reporte_ot_por_estado') }}">Órdenes de Trabajo por Estado</a></li>
+                    </ul>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto">
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        {# Mostrar el nombre de usuario logueado #}
+                        <span class="nav-link text-white">Hola, {{ current_user.username | capitalize }}</span> 
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('change_password') }}">Cambiar Contraseña</a>
+                    </li>
+                    {# Aquí también podrías poner el enlace a 'Gestión de Usuarios' si es admin #}
+                    {% if current_user.role == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('manage_users') }}">Gestión de Usuarios</a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-outline-light ms-2" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+                    </li>
+                {% else %}
+                    {# Si el usuario NO está autenticado, mostrar enlaces de Login y Registro #}
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-outline-light" href="{{ url_for('login') }}">Iniciar Sesión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-outline-light ms-2" href="{{ url_for('register') }}">Registrarse</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
+    {% block scripts %}
+{% endblock %} 
+</body>
+</html>

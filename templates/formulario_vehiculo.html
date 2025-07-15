@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if vehiculo %}Editar Vehículo{% else %}Agregar Nuevo Vehículo{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>
+        {% if vehiculo %}
+            Editar Vehículo (Patente: {{ vehiculo.patente }})
+        {% else %}
+            Agregar Nuevo Vehículo para Cliente: {{ cliente_actual.nombre_completo }}
+        {% endif %}
+    </h2>
+
+    <form method="POST" action="{% if vehiculo %}{{ url_for('editar_vehiculo', id_vehiculo=vehiculo.id_vehiculo) }}{% else %}{{ url_for('agregar_vehiculo', id_cliente=id_cliente_preseleccionado) }}{% endif %}">
+
+        <div class="form-group mb-3">
+            <label for="patente">Patente/Placa:</label>
+            <input type="text" id="patente" name="patente"
+                   value="{{ vehiculo.patente if vehiculo else (request.form.get('patente', '') | upper) }}"
+                   required {% if vehiculo %}readonly{% endif %} style="text-transform:uppercase;">
+            {% if vehiculo %}
+            <small class="form-text text-muted">La patente no se puede cambiar desde aquí.</small>
+            {% endif %}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="marca_vehiculo">Marca:</label>
+            <input type="text" id="marca_vehiculo" name="marca_vehiculo"
+                   value="{{ vehiculo.marca if vehiculo else request.form.get('marca_vehiculo', '') }}" required>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="modelo_vehiculo">Modelo:</label>
+            <input type="text" id="modelo_vehiculo" name="modelo_vehiculo"
+                   value="{{ vehiculo.modelo if vehiculo else request.form.get('modelo_vehiculo', '') }}" required>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="anio_vehiculo">Año:</label>
+            <input type="number" id="anio_vehiculo" name="anio_vehiculo"
+                   value="{{ vehiculo.anio if vehiculo else request.form.get('anio_vehiculo', '') }}">
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="kilometraje">Kilometraje:</label>
+            <input type="number" id="kilometraje" name="kilometraje"
+                   value="{{ vehiculo.kilometraje if vehiculo else request.form.get('kilometraje', '') }}">
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="notas_vehiculo">Notas del Vehículo (Opcional):</label>
+            <textarea id="notas_vehiculo" name="notas_vehiculo" rows="3">{{ vehiculo.notas_vehiculo if vehiculo else request.form.get('notas_vehiculo', '') }}</textarea>
+        </div>
+
+        {# --- SELECTOR DE CLIENTE (AHORA CONSISTENTE CON TU MODELO Cliente) --- #}
+        <div class="form-group mb-3">
+            <label for="id_cliente" class="form-label">Cliente Actual:</label>
+            <select class="form-control" id="id_cliente" name="id_cliente" required>
+                {% for cliente_opcion in clientes_disponibles %}
+                    <option value="{{ cliente_opcion.id_cliente }}"
+                            {% if (vehiculo and cliente_opcion.id_cliente == vehiculo.id_cliente) or
+                                      (not vehiculo and cliente_opcion.id_cliente == id_cliente_preseleccionado) %}
+                                selected
+                            {% endif %}>
+                        {{ cliente_opcion.nombre_completo }} {# Usamos nombre_completo aquí #}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {# --- FIN SELECTOR --- #}
+
+        <button type="submit" class="btn btn-primary">
+            {% if vehiculo %}Actualizar Vehículo{% else %}Agregar Vehículo{% endif %}
+        </button>
+        <a href="{{ url_for('administrar_vehiculos_cliente', id_cliente=vehiculo.id_cliente if vehiculo else id_cliente_preseleccionado) }}"
+           class="btn btn-danger">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

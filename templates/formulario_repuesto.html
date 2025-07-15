@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if repuesto %}Editar Repuesto{% else %}Agregar Nuevo Repuesto{% endif %}{% endblock %}
+
+{% block content %}
+    <h2>{% if repuesto %}Editar Repuesto{% else %}Agregar Nuevo Repuesto{% endif %}</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="nombre_repuesto">Nombre del Repuesto:</label>
+            <input type="text" id="nombre_repuesto" name="nombre_repuesto" value="{{ repuesto.nombre_repuesto if repuesto else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="descripcion">Descripción:</label>
+            <textarea id="descripcion" name="descripcion" rows="3">{{ repuesto.descripcion if repuesto else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="marca_repuesto">Marca:</label>
+            <input type="text" id="marca_repuesto" name="marca_repuesto" value="{{ repuesto.marca_repuesto if repuesto else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="precio_compra">Precio de Compra (sin IVA):</label>
+            <input type="number" id="precio_compra" name="precio_compra" step="1" value="{{ repuesto.precio_compra if repuesto else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="precio_venta">Precio de Venta (con IVA):</label>
+            <input type="number" id="precio_venta" name="precio_venta" step="1" value="{{ repuesto.precio_venta if repuesto else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="stock_actual">Stock Actual:</label>
+            <input type="number" id="stock_actual" name="stock_actual" value="{{ repuesto.stock_actual if repuesto else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="stock_minimo">Stock Mínimo (para alerta):</label>
+            <input type="number" id="stock_minimo" name="stock_minimo" value="{{ repuesto.stock_minimo if repuesto else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="ubicacion_fisica">Ubicación Física:</label>
+            <input type="text" id="ubicacion_fisica" name="ubicacion_fisica" value="{{ repuesto.ubicacion_fisica if repuesto else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="modelos_compatibles">Modelos de Autos Compatibles:</label>
+            <textarea id="modelos_compatibles" name="modelos_compatibles" rows="3">{{ repuesto.modelos_compatibles if repuesto else '' }}</textarea>
+        </div>
+        <button type="submit" class="btn">{% if repuesto %}Actualizar Repuesto{% else %}Agregar Repuesto{% endif %}</button>
+        <a href="{{ url_for('listar_repuestos') }}" class="btn btn-danger">Cancelar</a>
+    </form>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Reporte de Ingresos por Período{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Reporte de Ingresos por Período</h2>
+
+    <form method="POST" action="{{ url_for('reporte_ingresos_por_periodo') }}" class="mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="fecha_inicio" class="form-label">Fecha de Inicio:</label>
+                <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio_str if fecha_inicio_str else '' }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="fecha_fin" class="form-label">Fecha de Fin:</label>
+                <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin_str if fecha_fin_str else '' }}" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">Generar Reporte</button>
+            </div>
+        </div>
+    </form>
+
+    {% if ingresos_por_dia %}
+        <h4 class="mb-3">Resultados del Reporte</h4>
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Fecha</th>
+                    <th>Ingreso Total del Día</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dia, monto in ingresos_por_dia %}
+                <tr>
+                    <td>{{ dia }}</td>
+                    <td>CLP ${{ monto | clp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-info">
+                    <th>Total de Ingresos del Período:</th>
+                    <th>CLP ${{ total_ingresos_periodo | clp }}</th>
+                </tr>
+            </tfoot>
+        </table>
+    {% elif request.method == 'POST' %}
+        <div class="alert alert-info" role="alert">
+            No se encontraron ingresos para el período seleccionado.
+        </div>
+    {% endif %}
+
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Volver al Inicio</a>
+</div>
+{% endblock %}

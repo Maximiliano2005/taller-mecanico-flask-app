@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial del Vehículo por Patente{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Historial del Vehículo por Patente</h2>
+
+    <form method="POST" action="{{ url_for('historial_vehiculo') }}" class="mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label for="patente_buscada" class="form-label">Ingresa la Patente:</label>
+                <input type="text" class="form-control" id="patente_buscada" name="patente_buscada" 
+                       value="{{ patente_buscada if patente_buscada else '' }}" required 
+                       placeholder="Ej: AB123CD" style="text-transform:uppercase;">
+            </div>
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-primary">Buscar Historial</button>
+            </div>
+        </div>
+    </form>
+
+    {% if patente_buscada and not ordenes_encontradas %}
+        <div class="alert alert-info" role="alert">
+            No se encontraron Órdenes de Trabajo para la patente "{{ patente_buscada }}".
+        </div>
+    {% elif ordenes_encontradas %}
+        <h4 class="mb-3">Historial para Patente: {{ patente_buscada }}</h4>
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID OT</th>
+                    <th>Fecha Ingreso</th>
+                    <th>Descripción Trabajo</th>
+                    <th>Cliente</th>
+                    <th>Mecánico</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ot in ordenes_encontradas %}
+                <tr>
+                    <td>{{ ot.id_ot }}</td>
+                    <td>{{ ot.fecha_ingreso.strftime('%d-%m-%Y') }}</td>
+                    <td>{{ ot.descripcion_trabajo }}</td>
+                    <td>{{ ot.vehiculo.cliente.nombre }} {{ ot.vehiculo.cliente.apellido }}</td>
+                    <td>{{ ot.mecanico_asignado if ot.mecanico_asignado else 'N/A' }}</td>
+                    <td><span class="badge {{ 'bg-success' if ot.estado == 'Pagada' else ('bg-warning text-dark' if ot.estado == 'Pendiente de Pago' else 'bg-info text-dark') }}">{{ ot.estado }}</span></td>
+                    <td>
+                        <a href="{{ url_for('ver_orden_trabajo', id_ot=ot.id_ot) }}" class="btn btn-info btn-sm">Ver OT</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Volver al Inicio</a>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Taller Mecánico{% endblock %}
+
+{% block content %}
+    
+
+    <div class="hero">
+        <h1>Bienvenido al Sistema de Gestión de Taller Mecánico</h1>
+        <p>Tu solución completa para administrar repuestos, clientes, vehículos y órdenes de trabajo de forma eficiente.</p>
+        <div class="btn-group">
+            <a href="{{ url_for('listar_ordenes') }}" class="btn btn-primary">Ver Órdenes de Trabajo</a>
+            <a href="{{ url_for('listar_repuestos') }}" class="btn btn-secondary">Gestionar Inventario</a>
+            <a href="{{ url_for('listar_clientes') }}" class="btn btn-info">Administrar Clientes y Vehículos</a>
+        </div>
+    </div>
+
+    <div class="container mt-4"> {# Agrega un contenedor Bootstrap para el layout #}
+        {# --- SECCIÓN DE ALERTAS DE STOCK --- #}
+        {% if repuestos_bajo_stock %}
+        <div class="dashboard-section alert alert-warning" role="alert">
+            <h3>¡Alerta de Stock Bajo!</h3>
+            <p>Los siguientes repuestos están por debajo de su stock mínimo:</p>
+            <ul>
+                {% for repuesto in repuestos_bajo_stock %}
+                <li>
+                    <a href="{{ url_for('editar_repuesto', id_repuesto=repuesto.id_repuesto) }}" class="alert-link">
+                        {{ repuesto.nombre_repuesto }}
+                    </a> 
+                    (Stock Actual: <strong class="text-danger">{{ repuesto.stock_actual }}</strong> / Mínimo: {{ repuesto.stock_minimo }})
+                </li>
+                {% endfor %}
+            </ul>
+            <p>Considera realizar un pedido para reponerlos.</p>
+        </div>
+        {% else %}
+        <div class="dashboard-section alert alert-success" role="alert">
+            <h3>Estado del Inventario</h3>
+            <p>¡Buen trabajo! No hay repuestos con stock bajo actualmente. Tu inventario está en óptimas condiciones.</p>
+        </div>
+        {% endif %}
+        {# --- FIN SECCIÓN DE ALERTAS DE STOCK --- #}
+
+        {# --- SECCIÓN DE RESUMEN RÁPIDO --- #}
+        <div class="dashboard-section">
+            <h3>Resumen General del Taller</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="summary-item">Órdenes de Trabajo Pendientes: <strong>{{ total_ordenes_pendientes }}</strong></p>
+                </div>
+                <div class="col-md-6">
+                    {# Aquí podrías añadir más resúmenes si los pasas desde la ruta, ejemplo: total_ventas_hoy #}
+                    <p class="summary-item">Ventas Directas Registradas Hoy: <strong>{{ total_ventas_hoy if total_ventas_hoy is defined else 0 }}</strong></p>
+                </div>
+            </div>
+        </div>
+        {# --- FIN SECCIÓN DE RESUMEN RÁPIDO --- #}
+    </div> {# Cierre del container #}
+{% endblock %}

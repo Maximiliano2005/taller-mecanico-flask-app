@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Nueva Venta Directa{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Crear Nueva Venta Directa</h2>
+    {# Este bloque es para mostrar los mensajes flash. Se asume que solo está en base.html ahora. #}
+    {# Si por alguna razón ves el mensaje duplicado, asegúrate de que este bloque no esté aquí #}
+    {# y que solo esté en tu base.html dentro del div class="container-fluid" o similar. #}
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Agregar Repuesto a la Venta</h4>
+        </div>
+        <div class="card-body">
+            <form id="add-item-form"> 
+                <div class="row g-3">
+                    {# --- NUEVO: Campo de búsqueda para repuestos --- #}
+                    <div class="col-md-5">
+                        <label for="search_repuesto" class="form-label">Buscar Repuesto</label>
+                        <input type="text" class="form-control" id="search_repuesto" placeholder="Escribe para buscar...">
+                    </div>
+                    {# --- FIN NUEVO CAMPO --- #}
+
+                    <div class="col-md-5">
+                        <label for="id_repuesto" class="form-label">Repuesto</label>
+                        <select class="form-select" id="id_repuesto" name="id_repuesto" required>
+                            <option value="" disabled selected>Selecciona un repuesto</option>
+                            {% for repuesto in repuestos %}
+                                <option value="{{ repuesto.id_repuesto }}"
+                                        data-precio="{{ repuesto.precio_venta }}"
+                                        data-stock="{{ repuesto.stock_actual }}">
+                                    {{ repuesto.nombre_repuesto }} (Stock: {{ repuesto.stock_actual }}) - CLP ${{ repuesto.precio_venta | clp }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2"> {# Ajustado a col-md-2 para compensar el nuevo campo de búsqueda #}
+                        <label for="cantidad" class="form-label">Cantidad</label>
+                        <input type="number" class="form-control" id="cantidad" name="cantidad" min="1" value="1" required>
+                        <small class="text-danger" id="stock-warning" style="display:none;">Stock insuficiente</small>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Agregar al Carrito</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Ítems en el Carrito</h4>
+            <form action="{{ url_for('vaciar_venta') }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-warning btn-sm"
+                        onclick="return confirm('¿Estás seguro de que quieres vaciar todo el carrito?')">
+                    Vaciar Carrito
+                </button>
+            </form>
+        </div>
+        <div class="card-body" id="carrito-items-container"> 
+            {# Aquí se carga el contenido de _carrito_items_tabla.html #}
+            {% include '_carrito_items_tabla.html' %} 
+        </div>
+        <div class="card-footer" id="carrito-footer-container"> 
+            <form action="{{ url_for('finalizar_venta_directa') }}" method="POST">
+                <div class="mb-3">
+                    <label for="id_cliente_venta" class="form-label">Cliente (Opcional)</label>
+                    <select class="form-select" id="id_cliente_venta" name="id_cliente_venta">
+                        <option value="">-- Cliente sin registrar --</option>
+                        {% for cliente in clientes %}
+                            <option value="{{ cliente.id_cliente }}">{{ cliente.nombre_completo }} (Cel: {{ cliente.celular }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="tipo_venta" class="form-label">Tipo de Venta</label>
+                    <input type="text" class="form-control" id="tipo_venta" name="tipo_venta" value="Repuesto Directo" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="metodo_pago" class="form-label">Método de Pago</label>
+                    <select class="form-select" id="metodo_pago" name="metodo_pago" required>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                        <option value="Transferencia">Transferencia</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-success btn-lg" {% if not items_en_carrito %}disabled{% endif %}>
+                        Finalizar Venta Directa (CLP ${{ (total_carrito) | clp }})
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const repuestoSelect = document.getElementById('id_repuesto');
+        const cantidadInput = document.getElementById('cantidad');
+        const stockWarning = document.getElementById('stock-warning');
+        const addItemForm = document.getElementById('add-item-form');
+        const carritoItemsContainer = document.getElementById('carrito-items-container');
+        const finalizarVentaBtn = document.querySelector('#carrito-footer-container .btn-success'); 
+        
+        // --- NUEVO: Elementos para la búsqueda ---
+        const searchRepuestoInput = document.getElementById('search_repuesto');
+        // Guardar todas las opciones originales del select (excepto la primera "Selecciona un repuesto")
+        const allRepuestoOptions = Array.from(repuestoSelect.options).filter(option => option.value !== "");
+
+        function checkStock() {
+            const selectedOption = repuestoSelect.options[repuestoSelect.selectedIndex];
+            if (!selectedOption || selectedOption.value === "") { 
+                cantidadInput.value = 1; 
+                stockWarning.style.display = 'none';
+                cantidadInput.classList.remove('is-invalid');
+                addItemForm.querySelector('button[type="submit"]').disabled = true; 
+                return; 
+            }
+            const maxStock = parseInt(selectedOption.dataset.stock);
+            const currentQuantity = parseInt(cantidadInput.value);
+
+            if (currentQuantity > maxStock || currentQuantity <= 0) { 
+                stockWarning.style.display = 'block';
+                stockWarning.textContent = currentQuantity > maxStock ? 'Stock insuficiente' : 'La cantidad debe ser al menos 1';
+                cantidadInput.classList.add('is-invalid');
+                addItemForm.querySelector('button[type="submit"]').disabled = true;
+            } else {
+                stockWarning.style.display = 'none';
+                cantidadInput.classList.remove('is-invalid');
+                addItemForm.querySelector('button[type="submit"]').disabled = false;
+            }
+        }
+
+        repuestoSelect.addEventListener('change', function() {
+            cantidadInput.value = 1; 
+            checkStock();
+        });
+        cantidadInput.addEventListener('input', checkStock);
+        cantidadInput.addEventListener('change', checkStock); 
+
+        if (repuestoSelect.value) {
+            checkStock();
+        } else {
+            addItemForm.querySelector('button[type="submit"]').disabled = true;
+        }
+
+        // --- NUEVO: Lógica de filtrado para el campo de búsqueda ---
+        searchRepuestoInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            // Limpiar el select actual (excepto la primera opción deshabilitada)
+            repuestoSelect.innerHTML = '<option value="" disabled selected>Selecciona un repuesto</option>';
+
+            let firstMatchingOption = null; // Para seleccionar la primera opción que coincida
+
+            allRepuestoOptions.forEach(option => {
+                const optionText = option.textContent.toLowerCase();
+                if (optionText.includes(searchTerm)) {
+                    repuestoSelect.appendChild(option); // Re-añadir la opción al select
+                    if (!firstMatchingOption) {
+                        firstMatchingOption = option;
+                    }
+                }
+            });
+
+            // Si hay opciones que coinciden, seleccionar la primera automáticamente
+            if (firstMatchingOption) {
+                repuestoSelect.value = firstMatchingOption.value;
+            } else {
+                repuestoSelect.value = ""; // Si no hay coincidencias, resetear el select
+            }
+            repuestoSelect.dispatchEvent(new Event('change')); // Disparar evento change para actualizar stock/cantidad
+        });
+
+        // --- Manejo del Formulario de Agregar Ítem con AJAX ---
+        addItemForm.addEventListener('submit', function(event) {
+            event.preventDefault(); 
+
+            const formData = new FormData(addItemForm); 
+            const url = "{{ url_for('agregar_item_a_venta') }}"; 
+
+            fetch(url, {
+                method: 'POST',
+                body: formData 
+            })
+            .then(response => response.json()) 
+            .then(data => {
+                if (data.success) {
+                    carritoItemsContainer.innerHTML = data.carrito_html;
+                    
+                    finalizarVentaBtn.innerHTML = `Finalizar Venta Directa (CLP $${data.total_carrito_clp})`;
+
+                    finalizarVentaBtn.disabled = data.total_items === 0;
+
+                    // Opcional: Reiniciar el formulario de agregar repuesto
+                    // addItemForm.reset(); 
+                    // repuestoSelect.value = ""; 
+                    // checkStock(); 
+
+                } else {
+                    alert("Error al agregar ítem: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ocurrió un error de conexión al agregar el ítem.');
+            });
+        });
+    });
+</script>
+{% endblock %}

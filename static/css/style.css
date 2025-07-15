@@ -1,0 +1,302 @@
+/* static/css/style.css - Archivo CSS Combinado y Actualizado */
+
+/* --- Variables CSS para tu Paleta Roja --- */
+:root {
+    --primary-red: #bd293b; /* Rojo principal (similar al danger de Bootstrap) */
+    --dark-red: #f2f6ea;    /* Rojo más oscuro para hover/activo */
+    --light-red: #f8d7da;   /* Rojo muy claro para fondos de alertas/secciones */
+    --text-on-red: #ffffff; /* Texto blanco sobre fondos rojos */
+    --text-dark: #212529;   /* Texto oscuro general */
+    --bg-light: #f8f9fa;    /* Fondo claro general */
+    --border-color: #dee2e6; /* Color de borde estándar */
+    --secondary-color: #ffc300; /* Color secundario de Bootstrap */
+    --info-color: #9d9fa4; /* Color info de Bootstrap */
+    --success-color: #7a1a2e; /* Color success de Bootstrap */
+}
+
+/* --- Tus estilos generales del body y container (ajustados a la paleta) --- */
+body { 
+    font-family: Arial, sans-serif; 
+    margin: 0; 
+    padding: 0; 
+    background-color: var(--bg-light); /* Usar variable de la paleta */
+    color: var(--text-dark); /* Usar variable de la paleta */
+}
+
+/* Nota: Si ya usas .container-fluid en base.html, esta clase .container no se usará. */
+/* Si aún usas .container, considera cambiarlo a .container-fluid en base.html */
+.container { 
+    width: 90%; 
+    margin: 20px auto; 
+    background-color: #fff; 
+    padding: 20px; 
+    border-radius: 8px; 
+    box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+}
+
+/* --- Tus estilos para h1, h2 (ajustados a la paleta roja) --- */
+h1, h2 { 
+    color: var(--primary-red); /* Usar variable de la paleta */
+}
+
+/* --- Tus estilos para form-group --- */
+.form-group { 
+    margin-bottom: 15px; 
+}
+.form-group label { 
+    display: block; 
+    margin-bottom: 5px; 
+    font-weight: bold; 
+}
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group textarea,
+.form-group select { 
+    width: calc(100% - 22px); /* Mantener tu cálculo original */
+    padding: 10px;
+    border: 1px solid var(--border-color); /* Usar variable de la paleta */
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* --- Sobrescribir colores primarios de Bootstrap para usar tu rojo --- */
+/* Esto afectará a .btn-primary, .bg-primary, etc. */
+.btn-primary,
+.badge-primary,
+.bg-primary,
+.text-primary {
+    --bs-btn-bg: var(--primary-red);
+    --bs-btn-border-color: var(--primary-red);
+    --bs-btn-hover-bg: var(--dark-red);
+    --bs-btn-hover-border-color: var(--dark-red);
+    --bs-btn-active-bg: var(--dark-red);
+    --bs-btn-active-border-color: var(--dark-red);
+    --bs-btn-disabled-bg: var(--primary-red);
+    --bs-btn-disabled-border-color: var(--primary-red);
+    --bs-primary: var(--primary-red); /* Para otros usos de --bs-primary */
+    color: var(--text-on-red) !important; /* Asegura que el texto sea blanco */
+}
+
+/* --- Tus estilos para botones (fusionados con la paleta) --- */
+.btn {
+    background-color: var(--success-color); /* Usar variable de la paleta para el color original de .btn */
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 10px;
+    border-radius: .5rem; /* Bordes redondeados de mi sugerencia */
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; /* Transiciones más suaves */
+}
+.btn:hover { 
+    opacity: 0.9; 
+}
+
+.btn-danger { 
+    background-color: var(--primary-red); /* Usar tu rojo principal */
+    border-color: var(--primary-red);
+    color: var(--text-on-red);
+}
+.btn-danger:hover {
+    background-color: var(--dark-red);
+    border-color: var(--dark-red);
+}
+
+/* .btn-primary ya está definido arriba para usar el rojo principal */
+
+.btn-info { 
+    background-color: var(--info-color); /* Usar variable de la paleta */
+    color: white; 
+    border-color: var(--info-color);
+}
+.btn-info:hover {
+    background-color: #117a8b; /* Tono más oscuro para hover */
+    border-color: #117a8b;
+}
+
+.btn-secondary { 
+    background-color: var(--secondary-color); /* Usar variable de la paleta */
+    color: white; 
+    border-color: var(--secondary-color);
+}
+.btn-secondary:hover {
+    background-color: #5a6268; /* Tono más oscuro para hover */
+    border-color: #5a6268;
+}
+
+.btn-sm { 
+    padding: 5px 10px; 
+    font-size: 0.875rem; 
+    border-radius: 0.2rem;
+} 
+
+/* --- Ajustar colores de alerta (si usas alertas de Bootstrap) --- */
+.alert-success {
+    --bs-alert-bg: #d1e7dd; /* Verde claro de Bootstrap para éxito */
+    --bs-alert-color: #0f5132;
+    --bs-alert-border-color: #badbcc;
+}
+
+.alert-danger {
+    --bs-alert-bg: var(--light-red); /* Rojo claro para alertas de peligro */
+    --bs-alert-color: var(--dark-red);
+    --bs-alert-border-color: var(--primary-red);
+}
+
+.alert-info {
+    --bs-alert-bg: #cff4fc; /* Azul claro de Bootstrap para info */
+    --bs-alert-color: #055160;
+    --bs-alert-border-color: #b6effb;
+}
+
+/* --- Estilos para encabezados de tarjetas (card-header) --- */
+.card-header {
+    background-color: var(--primary-red); /* Fondo rojo para encabezados de tarjeta */
+    color: var(--text-on-red); /* Texto blanco */
+    font-weight: bold;
+    border-bottom: 1px solid var(--dark-red);
+}
+
+/* --- Estilos para el navbar (si tienes uno) --- */
+.navbar {
+    background-color: var(--primary-red) !important; /* Fondo rojo para el navbar */
+}
+.navbar-brand,
+.navbar-nav .nav-link {
+    color: var(--text-on-red) !important; /* Texto blanco en el navbar */
+}
+.navbar-nav .nav-link:hover {
+    color: rgba(255, 255, 255, 0.75) !important; /* Ligeramente más transparente al pasar el ratón */
+}
+
+
+/* --- Estilos para tablas mejorados con DataTables (tus estilos originales) --- */
+table.dataTable {
+    width: 100% !important; 
+    margin-top: 20px !important;
+}
+table.dataTable thead th,
+table.dataTable tbody td { 
+    border: 1px solid var(--border-color); /* Usar variable de la paleta */
+    padding: 8px;
+    text-align: left;
+}
+table.dataTable thead th {
+    background-color: var(--primary-red); /* Usar tu rojo principal */
+    color: var(--text-on-red); /* Texto blanco */
+}
+/* Ajustes para el input de búsqueda de DataTables y select de entradas */
+div.dataTables_wrapper div.dataTables_filter input {
+    margin-left: 0.5em;
+    display: inline-block;
+    width: auto;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--text-dark); /* Usar variable de la paleta */
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid var(--border-color); /* Usar variable de la paleta */
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+div.dataTables_wrapper div.dataTables_length select {
+    width: auto;
+    display: inline-block;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--text-dark); /* Usar variable de la paleta */
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3csvg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 1px solid var(--border-color); /* Usar variable de la paleta */
+    border-radius: 0.25rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+/* Estilos para los botones de paginación */
+.pagination .page-item .page-link {
+    color: var(--primary-red); /* Usar tu rojo principal */
+}
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-red); /* Usar tu rojo principal */
+    border-color: var(--primary-red);
+    color: var(--text-on-red);
+}
+
+/* --- Estilos del Hero Section (index.html) - Adaptados a la Paleta Roja --- */
+.hero {
+    text-align: center;
+    padding: 50px 20px;
+    background-color: var(--bg-light); /* Fondo claro de la paleta */
+    border-radius: 8px;
+    margin-top: 30px;
+    margin-bottom: 30px; 
+}
+.hero h1 {
+    color: var(--primary-red); /* Usar tu rojo principal */
+    font-size: 2.8em;
+    margin-bottom: 15px;
+}
+.hero p {
+    color: var(--text-dark); /* Usar color de texto oscuro */
+    font-size: 1.2em;
+    max-width: 700px;
+    margin: 0 auto 30px auto;
+    line-height: 1.6;
+}
+.hero .btn-group .btn {
+    display: inline-block;
+    margin: 10px;
+    padding: 12px 25px;
+    font-size: 1.1em;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+/* Los botones dentro de .hero .btn-group usarán las clases de Bootstrap */
+/* y serán afectados por las sobrescrituras de .btn-primary, .btn-secondary, .btn-info */
+/* que ya definimos arriba para usar los colores de la paleta. */
+/* Por lo tanto, no necesitamos redefinirlos aquí específicamente para .hero */
+
+/* --- Estilos adicionales para las secciones de alertas y resumen (index.html) - Adaptados a la Paleta Roja --- */
+.dashboard-section {
+    background-color: #ffffff; /* Fondo blanco */
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    margin-bottom: 20px;
+}
+.dashboard-section h3 {
+    margin-top: 0;
+    color: var(--primary-red); /* Usar tu rojo principal */
+    border-bottom: 1px solid var(--border-color); /* Usar color de borde de la paleta */
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+.dashboard-section ul {
+    list-style: none;
+    padding: 0;
+}
+.dashboard-section ul li {
+    padding: 8px 0;
+    border-bottom: 1px dashed #f0f0f0;
+}
+.dashboard-section ul li:last-child {
+    border-bottom: none;
+}
+.dashboard-section .summary-item {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
