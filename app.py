@@ -399,8 +399,6 @@ def index():
 
 # --- Rutas de Gestión de Usuarios (Admin) ---
 @app.route('/register', methods=['GET', 'POST'])
-@login_required
-@role_required(['admin']) # Solo el rol 'admin' puede acceder a esta ruta para registrar nuevos usuarios
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -426,6 +424,8 @@ def register():
         try:
             db.session.add(new_user)
             db.session.commit()
+            from flask_login import login_user
+            login_user(new_user)  # Loguear automáticamente al usuario
             flash(f'Usuario {username} ({role.capitalize()}) registrado exitosamente!', 'success')
             return redirect(url_for('index')) # O a una página de gestión de usuarios
         except Exception as e:
