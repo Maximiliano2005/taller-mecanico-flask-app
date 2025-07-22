@@ -46,14 +46,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
     )
-    op.bulk_insert('user', [
-        {
-            'id': 6,  # Usa un ID que no exista o déjalo que la DB lo asigne si es autoincremental
-            'username': 'maxi',
-            'password': generate_password_hash('1234', method='pbkdf2:sha256'),
-            'role': 'admin'
-        }
-    ])
     op.create_table('vehiculo',
     sa.Column('id_vehiculo', sa.Integer(), nullable=False),
     sa.Column('id_cliente', sa.Integer(), nullable=False),
