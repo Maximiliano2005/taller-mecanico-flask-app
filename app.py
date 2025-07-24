@@ -132,7 +132,6 @@ class Repuesto(db.Model):
     precio_venta = db.Column(db.Float, nullable=False)
     stock_actual = db.Column(db.Integer, nullable=False)
     stock_minimo = db.Column(db.Integer, nullable=False, default=10)
-    stock_minimo = db.Column(db.Integer, nullable=False)
     ubicacion_fisica = db.Column(db.String(100), nullable=True)
     modelos_compatibles = db.Column(db.Text, nullable=True) # Sin validación
 
@@ -774,7 +773,6 @@ def listar_ordenes():
 def crear_orden_trabajo():
     clientes = Cliente.query.order_by(Cliente.nombre_completo).all()
     
-    # --- CAMBIO CLAVE AQUÍ: Preparar los repuestos para ser serializables JSON ---
     repuestos_disponibles_obj = Repuesto.query.order_by(Repuesto.nombre_repuesto).all()
     repuestos_json_serializable = []
     for repuesto in repuestos_disponibles_obj:
@@ -784,7 +782,6 @@ def crear_orden_trabajo():
             'stock_actual': repuesto.stock_actual,
             'precio_venta': float(repuesto.precio_venta) # Convertir a float si es Decimal/Numeric
         })
-    # --- FIN CAMBIO CLAVE ---
 
     mecanicos = User.query.filter_by(role='mecanico').order_by(User.username).all()
 
@@ -792,7 +789,7 @@ def crear_orden_trabajo():
         id_cliente = request.form['id_cliente']
         id_vehiculo = request.form['vehiculo_id']
         descripcion_trabajo = request.form['descripcion_trabajo']
-        mecanico_asignado_id = request.form.get('mecanico_asignado') # Obtener el ID del mecánico seleccionado
+        mecanico_asignado_id = request.form.get('mecanico_asignado') 
         valor_mano_obra = float(request.form['valor_mano_obra'])
 
         repuestos_ot_data = []
@@ -803,7 +800,6 @@ def crear_orden_trabajo():
                 cantidad = int(request.form[f'cantidad_{count}'])
 
                 if repuesto_id and cantidad > 0:
-                    # Usar db.session.get() para corregir LegacyAPIWarning
                     repuesto_obj = db.session.get(Repuesto, int(repuesto_id)) 
                     if repuesto_obj:
                         if repuesto_obj.stock_actual < cantidad:
@@ -811,9 +807,9 @@ def crear_orden_trabajo():
                             return redirect(url_for('crear_orden_trabajo'))
                         
                         repuestos_ot_data.append({
-                            'id_repuesto': repuesto_id,
+                            'id_repuesto': int(repuesto_id), # <-- ¡CORREGIDO AQUÍ! Convertir a int
                             'cantidad': cantidad,
-                            'precio_venta_unitario': float(repuesto_obj.precio_venta) # Convertir a float
+                            'precio_venta_unitario': float(repuesto_obj.precio_venta) 
                         })
         
         valor_total_repuestos = sum(item['cantidad'] * item['precio_venta_unitario'] for item in repuestos_ot_data)
@@ -824,7 +820,6 @@ def crear_orden_trabajo():
                 id_vehiculo=id_vehiculo,
                 fecha_ingreso=datetime.now(),
                 descripcion_trabajo=descripcion_trabajo,
-                # Asigna el nombre de usuario del mecánico seleccionado
                 mecanico_asignado=db.session.get(User, int(mecanico_asignado_id)).username if mecanico_asignado_id else None, 
                 valor_mano_obra=valor_mano_obra,
                 valor_total_servicio=valor_total_servicio,
@@ -836,13 +831,13 @@ def crear_orden_trabajo():
             for item in repuestos_ot_data:
                 detalle_ot = DetalleOT(
                     id_ot=nueva_ot.id_ot,
-                    id_repuesto=item['id_repuesto'],
+                    id_repuesto=item['id_repuesto'], # Esto ahora será un int
                     cantidad=item['cantidad'],
                     precio_unitario_al_momento=item['precio_venta_unitario']
                 )
                 db.session.add(detalle_ot)
                 
-                repuesto_obj_actual = db.session.get(Repuesto, int(item['id_repuesto'])) # Usar db.session.get()
+                repuesto_obj_actual = db.session.get(Repuesto, int(item['id_repuesto'])) 
                 repuesto_obj_actual.stock_actual -= item['cantidad']
                 db.session.add(repuesto_obj_actual)
 
@@ -853,12 +848,12 @@ def crear_orden_trabajo():
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear la Orden de Trabajo: {str(e)}', 'danger')
-            print(f"Error al crear OT: {e}")
+            print(f"Error al crear OT: {e}") 
 
     return render_template('crear_orden_trabajo.html', 
                            clientes=clientes, 
-                           repuestos_json=repuestos_json_serializable, # <--- ¡Pasa la lista serializable!
-                           mecanicos=mecanicos) 
+                           repuestos_json=repuestos_json_serializable, 
+                           mecanicos=mecanicos)
 
 
 @app.route('/ordenes/ver/<int:id_ot>')
