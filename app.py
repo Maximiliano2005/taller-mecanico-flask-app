@@ -1,4 +1,4 @@
-from flask import Flask, render_template,render_template_string, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import datetime, timedelta # Importa datetime para usarlo en los modelos
