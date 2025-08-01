@@ -1,0 +1,10 @@
+[
+  {
+    "type": "sqlite",
+    "path": "/Users/davidhuanca/workspace/taller-mecanico-flask-app/taller.db"
+  },
+  {
+    "type": "sqlite",
+    "path": "/Users/davidhuanca/workspace/taller-mecanico-flask-app/instance/taller.db"
+  }
+]
