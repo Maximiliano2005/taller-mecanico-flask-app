@@ -9,6 +9,7 @@ import locale
 from functools import wraps # ¡Importa wraps para el decorador de roles!
 from dotenv import load_dotenv
 from flask_migrate import Migrate
+import click
 
 load_dotenv() # Carga las variables de entorno del archivo .env
 
@@ -16,20 +17,55 @@ load_dotenv() # Carga las variables de entorno del archivo .env
 # Inicializa la aplicación Flask
 app = Flask(__name__)
 
+
+@app.cli.command("crear-admin")
+@click.argument("password")
+def crear_admin(password):
+    """Crea un usuario administrador inicial.
+    
+    Uso: flask crear-admin 'tu-contrasena-segura'
+    """
+    # 1. Verifica si un usuario admin ya existe
+    admin_user = User.query.filter_by(username='admin').first()
+
+    if admin_user:
+        click.echo("El usuario 'admin' ya existe en la base de datos.")
+    else:
+        try:
+            # 2. Crea el nuevo usuario sin la contraseña encriptada
+            new_admin = User(
+                username='admin',
+                role='admin' # Asigna el rol 'admin'
+            )
+            
+            # 3. Usa el método set_password del modelo para encriptar y asignar la contraseña
+            #    NOTA: ¡Asegúrate de que este método exista en tu modelo User!
+            new_admin.set_password(password)
+
+            # 4. Agrega el usuario a la sesión y guarda en la base de datos
+            db.session.add(new_admin)
+            db.session.commit()
+            
+            click.echo(f"Usuario 'admin' creado exitosamente.")
+            click.echo("Puedes iniciar sesión con el nombre de usuario 'admin'.")
+
+        except Exception as e:
+            db.session.rollback()
+            click.echo(f"Ocurrió un error al crear el usuario: {e}", err=True)
+
 # --- Configuración de la Base de Datos ---
-# Usaremos SQLite para empezar. El archivo de la base de datos se llamará 'taller.db'
-# y se guardará en la misma carpeta del proyecto.
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL') 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 
-# Inicializa SQLAlchemy para la aplicación Flask
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login' # Define la vista de login para redirección automática
+login_manager.login_view = 'login' 
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -99,20 +135,13 @@ def format_clp(value):
         return ""
 
     try:
-        # Primero, convertimos el valor a flotante, luego a entero para asegurar que no haya decimales.
-        # Esto atrapará casos donde 'value' es una cadena vacía o no numérica.
         numeric_value = int(float(value))
     except (ValueError, TypeError):
-        # Si la conversión falla, imprimimos una advertencia y retornamos una cadena vacía.
         print(f"Advertencia: El valor '{value}' no es un número válido para formatear en CLP. Retornando vacío.")
         return ""
 
-    # *** EL CAMBIO CLAVE ESTÁ AQUÍ ***
-    # Usamos f-strings de Python para formatear el número con separadores de miles.
-    # '{numeric_value:,}' por defecto usa la COMA (,) como separador de miles.
     formatted_str = f"{numeric_value:,}"
 
-    # Como en Chile usamos el PUNTO (.) como separador de miles, reemplazamos la coma por un punto.
     return formatted_str.replace(",", ".")
 
 
@@ -190,12 +219,10 @@ class DetalleOT(db.Model):
     id_ot = db.Column(db.Integer, db.ForeignKey('orden_trabajo.id_ot'), nullable=False)
     id_repuesto = db.Column(db.Integer, db.ForeignKey('repuesto.id_repuesto'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
-    # CAMBIA ESTO:
-    # precio_venta_unitario_al_momento = db.Column(db.Float, nullable=False)
-    # POR ESTO (quitando '_venta_'):
-    precio_unitario_al_momento = db.Column(db.Float, nullable=False) # Precio del repuesto al momento de la OT
+    
+    precio_unitario_al_momento = db.Column(db.Float, nullable=False) 
 
-    # Relación con Repuesto
+    
     repuesto = db.relationship('Repuesto', backref='detalles_ot_usados_en')
 
     def __repr__(self):
@@ -762,98 +789,131 @@ def get_vehiculos_por_cliente(id_cliente):
 @app.route('/ordenes')
 @login_required
 def listar_ordenes():
-    # Cargamos las OT y precargamos los vehículos y clientes para mostrarlos en la tabla
     ordenes = OrdenTrabajo.query.options(
         db.joinedload(OrdenTrabajo.vehiculo).joinedload(Vehiculo.cliente)
-    ).order_by(OrdenTrabajo.fecha_ingreso.desc()).all() # Ordenar por fecha más reciente
+    ).order_by(OrdenTrabajo.fecha_ingreso.desc()).all()
     return render_template('listar_ordenes.html', ordenes=ordenes)
+
 
 @app.route('/ordenes/crear', methods=['GET', 'POST'])
 @login_required
 def crear_orden_trabajo():
-    clientes = Cliente.query.order_by(Cliente.nombre_completo).all()
+    """Ruta para crear una nueva orden de trabajo."""
     
+    # Preparamos los datos para el formulario GET o en caso de error en POST
+    clientes = Cliente.query.order_by(Cliente.nombre_completo).all()
     repuestos_disponibles_obj = Repuesto.query.order_by(Repuesto.nombre_repuesto).all()
-    repuestos_json_serializable = []
-    for repuesto in repuestos_disponibles_obj:
-        repuestos_json_serializable.append({
-            'id_repuesto': repuesto.id_repuesto,
-            'nombre_repuesto': repuesto.nombre_repuesto,
-            'stock_actual': repuesto.stock_actual,
-            'precio_venta': float(repuesto.precio_venta) # Convertir a float si es Decimal/Numeric
-        })
-
+    repuestos_json_serializable = [
+        {'id': r.id_repuesto, 'nombre_repuesto': r.nombre_repuesto, 'stock_actual': r.stock_actual, 'precio_venta': float(r.precio_venta)}
+        for r in repuestos_disponibles_obj
+    ]
     mecanicos = User.query.filter_by(role='mecanico').order_by(User.username).all()
 
     if request.method == 'POST':
-        id_cliente = request.form['id_cliente']
-        id_vehiculo = request.form['vehiculo_id']
-        descripcion_trabajo = request.form['descripcion_trabajo']
-        mecanico_asignado_id = request.form.get('mecanico_asignado') 
-        valor_mano_obra = float(request.form['valor_mano_obra'])
+        # Validar y convertir datos del formulario
+        try:
+            id_cliente = int(request.form.get('id_cliente'))
+            id_vehiculo = int(request.form.get('id_vehiculo'))
+            descripcion_trabajo = request.form.get('descripcion_trabajo')
+            mecanico_asignado_id_str = request.form.get('mecanico_asignado')
+            valor_mano_obra = float(request.form.get('valor_mano_obra', 0))
+        except (ValueError, TypeError):
+            flash('Error: Datos del formulario no válidos.', 'danger')
+            return redirect(url_for('crear_orden_trabajo'))
 
-        repuestos_ot_data = []
-        for key in request.form:
-            if key.startswith('repuesto_id_'):
-                count = key.split('_')[2]
-                repuesto_id = request.form[key]
-                cantidad = int(request.form[f'cantidad_{count}'])
-
-                if repuesto_id and cantidad > 0:
-                    repuesto_obj = db.session.get(Repuesto, int(repuesto_id)) 
-                    if repuesto_obj:
-                        if repuesto_obj.stock_actual < cantidad:
-                            flash(f'Stock insuficiente para "{repuesto_obj.nombre_repuesto}". Disponible: {repuesto_obj.stock_actual}, Solicitado: {cantidad}.', 'danger')
-                            return redirect(url_for('crear_orden_trabajo'))
-                        
-                        repuestos_ot_data.append({
-                            'id_repuesto': int(repuesto_id), # <-- ¡CORREGIDO AQUÍ! Convertir a int
-                            'cantidad': cantidad,
-                            'precio_venta_unitario': float(repuesto_obj.precio_venta) 
-                        })
+        # Validar existencia de cliente y vehículo
+        cliente = db.session.get(Cliente, id_cliente)
+        vehiculo = db.session.get(Vehiculo, id_vehiculo)
+        if not cliente or not vehiculo:
+            flash('Error: Cliente o vehículo no encontrado.', 'danger')
+            return redirect(url_for('crear_orden_trabajo'))
         
-        valor_total_repuestos = sum(item['cantidad'] * item['precio_venta_unitario'] for item in repuestos_ot_data)
-        valor_total_servicio = valor_mano_obra + valor_total_repuestos
+        mecanico_asignado = None
+        if mecanico_asignado_id_str:
+            try:
+                mecanico_asignado_id = int(mecanico_asignado_id_str)
+                mecanico = db.session.get(User, mecanico_asignado_id)
+                if mecanico:
+                    mecanico_asignado = mecanico.username
+            except (ValueError, TypeError):
+                flash('Error: Mecánico asignado no válido.', 'danger')
+                return redirect(url_for('crear_orden_trabajo'))
+        
+        # --- Pre-validar repuestos antes de la transacción ---
+        repuestos_ot_data = []
+        valor_total_repuestos = 0
+        for key in request.form:
+            if key.startswith('repuesto_id_') and request.form[key]:
+                try:
+                    repuesto_id = int(request.form[key])
+                    count = key.split('_')[2]
+                    cantidad = int(request.form.get(f'cantidad_{count}', 0))
+                    
+                    if cantidad <= 0:
+                        flash('Error: La cantidad de un repuesto debe ser mayor a 0.', 'danger')
+                        return redirect(url_for('crear_orden_trabajo'))
 
+                    repuesto_obj = db.session.get(Repuesto, repuesto_id)
+                    if not repuesto_obj:
+                        flash(f'Error: El repuesto con ID {repuesto_id} no fue encontrado.', 'danger')
+                        return redirect(url_for('crear_orden_trabajo'))
+                    
+                    if repuesto_obj.stock_actual < cantidad:
+                        flash(f'Stock insuficiente para "{repuesto_obj.nombre_repuesto}". Disponible: {repuesto_obj.stock_actual}, Solicitado: {cantidad}.', 'danger')
+                        return redirect(url_for('crear_orden_trabajo'))
+
+                    repuestos_ot_data.append({
+                        'repuesto_obj': repuesto_obj,
+                        'cantidad': cantidad,
+                        'precio_venta_unitario': float(repuesto_obj.precio_venta)
+                    })
+                    valor_total_repuestos += repuesto_obj.precio_venta * cantidad
+                
+                except (ValueError, TypeError):
+                    flash('Error: Datos de repuesto no válidos. Asegúrese de seleccionar un repuesto y una cantidad.', 'danger')
+                    return redirect(url_for('crear_orden_trabajo'))
+        
+        # --- Si todo es válido, crear y guardar la Orden de Trabajo ---
         try:
             nueva_ot = OrdenTrabajo(
                 id_vehiculo=id_vehiculo,
                 fecha_ingreso=datetime.now(),
                 descripcion_trabajo=descripcion_trabajo,
-                mecanico_asignado=db.session.get(User, int(mecanico_asignado_id)).username if mecanico_asignado_id else None, 
+                mecanico_asignado=mecanico_asignado,
                 valor_mano_obra=valor_mano_obra,
-                valor_total_servicio=valor_total_servicio,
+                valor_total_servicio=valor_mano_obra + valor_total_repuestos,
                 estado='Pendiente'
             )
             db.session.add(nueva_ot)
-            db.session.flush()
+            db.session.flush() # Importante: flush() para obtener el ID de la orden
 
             for item in repuestos_ot_data:
+                # Crear el registro de la relación Repuesto-Orden (DetalleOT)
                 detalle_ot = DetalleOT(
                     id_ot=nueva_ot.id_ot,
-                    id_repuesto=item['id_repuesto'], # Esto ahora será un int
+                    id_repuesto=item['repuesto_obj'].id_repuesto,
                     cantidad=item['cantidad'],
                     precio_unitario_al_momento=item['precio_venta_unitario']
                 )
                 db.session.add(detalle_ot)
                 
-                repuesto_obj_actual = db.session.get(Repuesto, int(item['id_repuesto'])) 
-                repuesto_obj_actual.stock_actual -= item['cantidad']
-                db.session.add(repuesto_obj_actual)
-
+                # Descontar del stock
+                item['repuesto_obj'].stock_actual -= item['cantidad']
+            
             db.session.commit()
             flash('Orden de Trabajo creada exitosamente.', 'success')
             return redirect(url_for('listar_ordenes'))
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear la Orden de Trabajo: {str(e)}', 'danger')
+            flash(f'Error inesperado al crear la Orden de Trabajo: {str(e)}', 'danger')
             print(f"Error al crear OT: {e}") 
 
+    # Renderiza el formulario si el método es GET o si hay un error
     return render_template('crear_orden_trabajo.html', 
-                           clientes=clientes, 
-                           repuestos_json=repuestos_json_serializable, 
-                           mecanicos=mecanicos)
+                            clientes=clientes, 
+                            repuestos_json=repuestos_json_serializable, 
+                            mecanicos=mecanicos)
 
 
 @app.route('/ordenes/ver/<int:id_ot>')
@@ -1280,14 +1340,8 @@ def crear_pago():
             flash('Venta asociada no encontrada.', 'danger')
             return redirect(url_for('crear_pago'))
 
-        # --- ¡AQUÍ ESTÁ LA LÓGICA CORREGIDA! ---
-        # 1. Obtener el saldo pendiente actual de la venta ANTES de aplicar el pago.
         saldo_actual_venta = venta.saldo_pendiente
 
-        # 2. Validar si el monto del pago excede este saldo actual.
-        # Es buena práctica usar una pequeña tolerancia para flotantes o convertir a int para comparar.
-        # Aquí lo convertimos a int para el mensaje, y podemos comparar los floats directamente o también a int.
-        # Usamos int() para la comparación si los valores de tu DB son esencialmente enteros (CLP).
         if monto > saldo_actual_venta:
             flash(f'El monto del pago ({int(monto)}) excede el saldo pendiente ({int(saldo_actual_venta)}).', 'danger')
             # Redirigir y rellenar el formulario para que el usuario corrija
@@ -1298,42 +1352,35 @@ def crear_pago():
                                    metodo_pago_seleccionado=metodo_pago,
                                    descripcion_ingresada=descripcion)
         
-        # Opcional: Si el pago deja un saldo negativo muy pequeño debido a la precisión de flotantes,
-        # puedes ajustarlo a cero. Por ejemplo, si el saldo era 10 y pagan 10, queda 0.0000000001,
-        # esto lo ajustaría a 0.
-        if abs(saldo_actual_venta - monto) < 0.01: # Si la diferencia es mínima, consideramos que está saldada
-             monto = saldo_actual_venta # Ajusta el monto a pagar al saldo exacto para evitar negativos pequeños
+        
+        if abs(saldo_actual_venta - monto) < 0.01: 
+             monto = saldo_actual_venta 
              saldo_final_despues_pago = 0.0
         else:
             saldo_final_despues_pago = saldo_actual_venta - monto
 
         try:
-            # 3. Si la validación pasa, crear el pago.
+            
             nuevo_pago = Pago(
                 id_venta=id_venta,
-                monto=monto, # Usar el monto ajustado si se realizó el ajuste anterior
+                monto=monto,
                 metodo_pago=metodo_pago,
                 descripcion=descripcion
             )
             db.session.add(nuevo_pago)
 
-            # 4. Actualizar la columna saldo_pendiente de la Venta.
+            
             venta.saldo_pendiente = saldo_final_despues_pago
             db.session.add(venta) # Marcar la venta para ser guardada
 
-            # --- Lógica para actualizar el estado de la OT asociada ---
-            # Si la venta tiene una OT asociada y su saldo pendiente llega a 0 o menos,
-            # actualiza el estado de la OT a 'Pagada'.
             if venta.id_ot_asociada:
                 ot_asociada = OrdenTrabajo.query.get(venta.id_ot_asociada)
-                # Verificar el saldo_pendiente de la Venta para determinar el estado de la OT
                 if ot_asociada and venta.saldo_pendiente <= 0:
                     ot_asociada.estado = 'Pagada'
                     db.session.add(ot_asociada)
 
             db.session.commit()
             flash('Pago registrado exitosamente.', 'success')
-            # Redirigir a una vista más informativa, como el detalle de la venta o la lista de pagos
             return redirect(url_for('listar_pagos')) 
 
         except Exception as e:
@@ -1341,10 +1388,39 @@ def crear_pago():
             flash(f'Error al registrar el pago: {str(e)}', 'danger')
             print(f"Error al crear pago: {e}")
 
-    # Para solicitudes GET o cuando el POST falla antes del commit
     return render_template('crear_pago.html',
                            ventas=ventas_disponibles,
                            id_venta_preseleccionada=id_venta_preseleccionada)
+
+@app.route('/ordenes/registrar-pago/<int:id_ot>', methods=['POST'])
+@login_required
+def registrar_pago(id_ot):
+    """
+    Ruta para registrar el pago de una orden de trabajo.
+    Solo acepta peticiones POST y cambia el estado de la orden a 'Pagada'.
+    """
+    orden = db.session.get(OrdenTrabajo, id_ot)
+    if not orden:
+        flash('Error: Orden de trabajo no encontrada.', 'danger')
+        return redirect(url_for('listar_ordenes'))
+
+    # Se verifica si la orden está en estado 'Completada' antes de registrar el pago.
+    if orden.estado != 'Completada':
+        flash('Error: Solo se pueden registrar pagos de órdenes completadas.', 'danger')
+        return redirect(url_for('listar_ordenes'))
+    
+    # Se cambia el estado de la orden a 'Pagada'
+    orden.estado = 'Pagada'
+    
+    try:
+        db.session.commit()
+        flash(f'El pago de la Orden de Trabajo #{id_ot} ha sido registrado exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al registrar el pago: {str(e)}', 'danger')
+        print(f"Error al registrar pago de OT {id_ot}: {e}")
+    
+    return redirect(url_for('listar_ordenes'))
 
 
 # --- Rutas para Reportes ---

@@ -4,30 +4,34 @@
 
 {% block content %}
     <h2>Crear Nueva Orden de Trabajo</h2>
-    {# Mensajes flash (asumiendo que ya están en base.html y los eliminaste de aquí) #}
+    {# Mensajes flash #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
     <form method="POST">
         <h3>Seleccionar Cliente y Vehículo</h3>
-        {# Selector de Cliente #}
         <div class="form-group">
             <label for="cliente_id">Cliente:</label>
             <select class="form-control" id="cliente_id" name="id_cliente" required>
                 <option value="">Seleccione un Cliente</option>
-                {% for cliente in clientes %} {# Asume que 'clientes' se pasa desde app.py #}
+                {% for cliente in clientes %}
                 <option value="{{ cliente.id_cliente }}">{{ cliente.nombre_completo }} ({{ cliente.rut }})</option>
                 {% endfor %}
             </select>
         </div>
 
-        {# Selector de Vehículo (inicialmente deshabilitado) #}
         <div class="form-group">
             <label for="vehiculo_id">Vehículo:</label>
-            <select class="form-control" id="vehiculo_id" name="vehiculo_id" required disabled> 
+            <select class="form-control" id="vehiculo_id" name="id_vehiculo" required disabled>
                 <option value="">Seleccione un Vehículo</option>
             </select>
         </div>
 
-        {# Campos para los Detalles del Vehículo (se autocompletarán) #}
         <h4>Detalles del Vehículo Seleccionado:</h4>
         <div class="form-group">
             <label for="patente">Patente:</label>
@@ -49,26 +53,24 @@
         <h3>Detalles del Servicio</h3>
         <div class="form-group">
             <label for="mecanico_asignado">Mecánico Asignado (Opcional):</label>
-            {# --- CAMBIO AQUÍ: De input a select --- #}
             <select class="form-control" id="mecanico_asignado" name="mecanico_asignado">
                 <option value="">-- No Asignado --</option>
-                {% for mecanico in mecanicos %} {# Asume que 'mecanicos' se pasa desde app.py #}
+                {% for mecanico in mecanicos %}
                 <option value="{{ mecanico.id }}">{{ mecanico.username }}</option>
                 {% endfor %}
             </select>
-            {# --- FIN CAMBIO --- #}
         </div>
         <div class="form-group">
             <label for="descripcion_trabajo">Descripción del Trabajo:</label>
-            <textarea id="descripcion_trabajo" name="descripcion_trabajo" rows="5" required></textarea>
+            <textarea class="form-control" id="descripcion_trabajo" name="descripcion_trabajo" rows="5" required></textarea>
         </div>
         <div class="form-group">
             <label for="valor_mano_obra">Valor Mano de Obra (sin IVA):</label>
-            <input type="number" id="valor_mano_obra" name="valor_mano_obra" step="1" value="0" required>
+            <input type="number" class="form-control" id="valor_mano_obra" name="valor_mano_obra" step="1" value="0" required>
         </div>
 
         <h3>Repuestos a Utilizar</h3>
-        <button type="button" class="btn btn-secondary" onclick="agregarCampoRepuesto()">Agregar Repuesto</button> {# Añadí clase btn-secondary #}
+        <button type="button" class="btn btn-secondary" onclick="agregarCampoRepuesto()">Agregar Repuesto</button>
         <div id="repuestos_container">
             {# Los campos de repuesto se añadirán aquí con JavaScript #}
         </div>
@@ -80,58 +82,86 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // Variables y funciones para Repuestos (ya las tenías)
     let repuestoCount = 0;
-    // Asegúrate que esta variable se llama 'repuestos_json' como la pasas desde app.py
-    const repuestos = {{ repuestos_json | tojson }}; 
+    // La lista de repuestos se parsea en JavaScript para facilitar la búsqueda
+    const repuestos = {{ repuestos_json | tojson | safe }}; 
 
     function agregarCampoRepuesto() {
         repuestoCount++;
         const container = document.getElementById('repuestos_container');
         const div = document.createElement('div');
-        div.classList.add('form-group', 'repuesto-item'); // Añadí 'repuesto-item' para consistencia
+        div.classList.add('form-group', 'repuesto-item');
         div.innerHTML = `
             <hr>
-            <label for="repuesto_${repuestoCount}">Repuesto #${repuestoCount}:</label>
-            <select id="repuesto_${repuestoCount}" name="repuesto_id_${repuestoCount}" onchange="actualizarPrecioStock(this, ${repuestoCount})" required class="form-control"> {# Añadí class="form-control" #}
-                <option value="">-- Selecciona un Repuesto --</option>
-                ${repuestos.map(r => `<option value="${r.id}">${r.nombre_repuesto} (Stock: ${r.stock_actual} - Precio: $${r.precio_venta})</option>`).join('')}
-            </select>
-            <label for="cantidad_${repuestoCount}" style="margin-top: 10px;">Cantidad:</label>
-            <input type="number" id="cantidad_${repuestoCount}" name="cantidad_${repuestoCount}" min="1" value="1" onchange="validarCantidad(this, ${repuestoCount})" required class="form-control"> {# Añadí class="form-control" #}
+            <div class="d-flex align-items-center mb-2">
+                <label for="repuesto_input_${repuestoCount}">Repuesto #${repuestoCount}:</label>
+                <button type="button" class="btn btn-danger btn-sm ms-auto" onclick="this.parentElement.parentElement.remove()">Quitar</button>
+            </div>
+            
+            <input list="repuestos_disponibles" 
+                   id="repuesto_input_${repuestoCount}" 
+                   name="repuesto_nombre_${repuestoCount}" 
+                   placeholder="Escribe para buscar un repuesto..." 
+                   class="form-control mb-2" 
+                   oninput="actualizarPrecioStock(this, ${repuestoCount})" 
+                   required>
+
+            <datalist id="repuestos_disponibles">
+                ${repuestos.map(r => `<option value="${r.nombre_repuesto}">`).join('')}
+            </datalist>
+
+            <input type="hidden" id="repuesto_id_${repuestoCount}" name="repuesto_id_${repuestoCount}">
+
+            <label for="cantidad_${repuestoCount}">Cantidad:</label>
+            <input type="number" id="cantidad_${repuestoCount}" 
+                   name="cantidad_${repuestoCount}" min="1" value="1" 
+                   onchange="validarCantidad(this, ${repuestoCount})" 
+                   required class="form-control">
             <p id="info_repuesto_${repuestoCount}" style="font-size: 0.9em; color: #555;"></p>
-            <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">Quitar Repuesto</button> {# Añadí btn-sm #}
         `;
         container.appendChild(div);
     }
 
-    function actualizarPrecioStock(selectElement, count) {
-        const selectedRepuestoId = parseInt(selectElement.value);
+    function actualizarPrecioStock(inputElement, count) {
+        const nombreRepuesto = inputElement.value;
+        const repuesto = repuestos.find(r => r.nombre_repuesto === nombreRepuesto);
         const infoParagraph = document.getElementById(`info_repuesto_${count}`);
         const cantidadInput = document.getElementById(`cantidad_${count}`);
-        // Asegúrate de que el ID del repuesto en el JSON sea 'id' o 'id_repuesto'
-        const repuesto = repuestos.find(r => r.id === selectedRepuestoId || r.id_repuesto === selectedRepuestoId); 
+        const hiddenIdInput = document.getElementById(`repuesto_id_${count}`);
 
         if (repuesto) {
-            infoParagraph.textContent = `Precio Unitario: $${repuesto.precio_venta.toFixed(2)} | Stock Disponible: ${repuesto.stock_actual}`;
-            cantidadInput.max = repuesto.stock_actual; 
-            cantidadInput.value = Math.min(cantidadInput.value, repuesto.stock_actual); // Ajusta la cantidad si excede el stock
+            infoParagraph.textContent = `Precio Unitario: $${repuesto.precio_venta} | Stock Disponible: ${repuesto.stock_actual}`;
+            cantidadInput.max = repuesto.stock_actual;
+            hiddenIdInput.value = repuesto.id;
         } else {
-            infoParagraph.textContent = '';
-            cantidadInput.max = ""; 
+            infoParagraph.textContent = 'Repuesto no encontrado o no seleccionado.';
+            cantidadInput.max = "";
+            hiddenIdInput.value = "";
         }
     }
 
     function validarCantidad(inputElement, count) {
-        const selectedRepuestoId = parseInt(document.getElementById(`repuesto_${count}`).value);
-        const repuesto = repuestos.find(r => r.id === selectedRepuestoId || r.id_repuesto === selectedRepuestoId);
+        const selectedRepuestoId = document.getElementById(`repuesto_id_${count}`).value;
+        if (!selectedRepuestoId) {
+            // El usuario no ha seleccionado un repuesto válido del datalist
+            inputElement.value = 1;
+            return;
+        }
+
+        const repuesto = repuestos.find(r => r.id == selectedRepuestoId);
 
         if (repuesto) {
             const cantidadSolicitada = parseInt(inputElement.value);
             if (cantidadSolicitada > repuesto.stock_actual) {
-                alert(`La cantidad solicitada (${cantidadSolicitada}) excede el stock disponible (${repuesto.stock_actual}).`);
-                inputElement.value = repuesto.stock_actual; 
+                // Mensaje de alerta temporal en lugar de 'alert()'
+                const alertMessage = document.createElement('div');
+                alertMessage.classList.add('alert', 'alert-danger');
+                alertMessage.textContent = `La cantidad solicitada (${cantidadSolicitada}) excede el stock disponible (${repuesto.stock_actual}).`;
+                document.body.prepend(alertMessage);
+                setTimeout(() => alertMessage.remove(), 5000);
+                inputElement.value = repuesto.stock_actual;
             }
         }
     }
@@ -160,12 +190,12 @@
                     if (data.length > 0) {
                         $.each(data, function(index, vehiculo) {
                             vehiculoSelect.append('<option value="' + vehiculo.id_vehiculo + '" ' +
-                                                  'data-patente="' + vehiculo.patente + '" ' +
-                                                  'data-marca="' + vehiculo.marca + '" ' +
-                                                  'data-modelo="' + vehiculo.modelo + '" ' +
-                                                  'data-anio="' + vehiculo.anio + '">' +
-                                                  vehiculo.patente + ' - ' + vehiculo.marca + ' ' + vehiculo.modelo +
-                                                  '</option>');
+                                                'data-patente="' + vehiculo.patente + '" ' +
+                                                'data-marca="' + vehiculo.marca + '" ' +
+                                                'data-modelo="' + vehiculo.modelo + '" ' +
+                                                'data-anio="' + vehiculo.anio + '">' +
+                                                vehiculo.patente + ' - ' + vehiculo.marca + ' ' + vehiculo.modelo +
+                                                '</option>');
                         });
                         vehiculoSelect.prop('disabled', false); 
                     } else {
@@ -176,7 +206,12 @@
                     vehiculoSelect.empty().append('<option value="">Error al cargar vehículos</option>');
                     vehiculoSelect.prop('disabled', true);
                     console.error("Error al cargar vehículos para el cliente " + clienteId);
-                    alert("No se pudieron cargar los vehículos. Intente de nuevo.");
+                    // Reemplazamos alert() con un mensaje flash temporal
+                    const alertMessage = document.createElement('div');
+                    alertMessage.classList.add('alert', 'alert-danger');
+                    alertMessage.textContent = "No se pudieron cargar los vehículos. Intente de nuevo.";
+                    document.body.prepend(alertMessage);
+                    setTimeout(() => alertMessage.remove(), 5000);
                 });
             } else {
                 vehiculoSelect.empty().append('<option value="">Seleccione un Vehículo</option>').prop('disabled', true);
