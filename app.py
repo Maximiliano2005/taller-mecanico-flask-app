@@ -17,12 +17,7 @@ load_dotenv() # Carga las variables de entorno del archivo .env
 # Inicializa la aplicación Flask
 app = Flask(__name__)
 
-@app.cli.command('create-db')
-def create_db():
-    """Crea las tablas de la base de datos."""
-    with app.app_context():
-        db.create_all()
-        print('Base de datos creada!')
+
 
 @app.cli.command("crear-admin")
 @click.argument("password")
@@ -278,6 +273,13 @@ class DetalleVenta(db.Model):
 
     def __repr__(self):
         return f'<DetalleVenta Venta:{self.id_venta} Rep:{self.id_repuesto} Cant:{self.cantidad}>'
+    
+@app.cli.command('create-db')
+def create_db():
+    """Crea las tablas de la base de datos."""
+    with app.app_context():
+        db.create_all()
+        print('Base de datos creada!')
     
 
 # --- Rutas de la Aplicación (URLs) ---
