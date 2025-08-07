@@ -17,6 +17,12 @@ load_dotenv() # Carga las variables de entorno del archivo .env
 # Inicializa la aplicación Flask
 app = Flask(__name__)
 
+@app.cli.command('create-db')
+def create_db():
+    """Crea las tablas de la base de datos."""
+    with app.app_context():
+        db.create_all()
+        print('Base de datos creada!')
 
 @app.cli.command("crear-admin")
 @click.argument("password")
