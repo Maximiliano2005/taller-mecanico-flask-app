@@ -56,8 +56,12 @@ def crear_admin(password):
 # --- Configuración de la Base de Datos ---
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL') 
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'holaviejoediondo210423') 
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'DATABASE_URL', 
+    'sqlite:///' + os.path.join(basedir, 'taller.db')
+) 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 
 
