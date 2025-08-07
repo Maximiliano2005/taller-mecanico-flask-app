@@ -57,12 +57,8 @@ def crear_admin(password):
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'holaviejoediondo210423') 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    'DATABASE_URL', 
-    'postgresql://[postgres]:[vLhuZVtWMdwESYBAogFcXRhJJvjczUVz]@trolley.proxy.rlwy.net:42012/[taller.db]')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://[postgres]:[vLhuZVtWMdwESYBAogFcXRhJJvjczUVz]@trolley.proxy.rlwy.net:42012/[taller.db]')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
-
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
