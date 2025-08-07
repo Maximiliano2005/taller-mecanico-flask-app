@@ -59,8 +59,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'holaviejoediondo210423') 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
     'DATABASE_URL', 
-    'sqlite:///' + os.path.join(basedir, 'taller.db')
-) 
+    'postgresql://[postgres]:[vLhuZVtWMdwESYBAogFcXRhJJvjczUVz]@trolley.proxy.rlwy.net:42012/[taller.db]')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 
